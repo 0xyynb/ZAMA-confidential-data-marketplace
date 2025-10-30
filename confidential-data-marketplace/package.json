@@ -1,0 +1,34 @@
+{
+  "name": "confidential-data-marketplace",
+  "version": "1.0.0",
+  "description": "基于 FHEVM 的隐私保护数据交易平台",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "node": "hardhat node",
+    "frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [
+    "FHEVM",
+    "Zama",
+    "Privacy",
+    "Data Marketplace",
+    "Homomorphic Encryption"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "fhevm": "^0.6.2",
+    "fhevm-core-contracts": "^0.6.1"
+  }
+}

@@ -1,0 +1,49 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+# Hardhat files
+cache
+artifacts
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.vite
+frontend/.cache
+frontend/.eslintcache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets & locals
+.env.*
+*.local
+*.secrets
+secrets.json
+
+# Netlify local
+.netlify
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Temp
+**/tmp/
+**/temp/
+

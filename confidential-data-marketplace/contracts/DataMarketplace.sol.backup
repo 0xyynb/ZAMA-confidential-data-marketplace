@@ -1,0 +1,595 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "fhevm/lib/TFHE.sol";
+import "fhevm/gateway/GatewayCaller.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+/**
+ * @title DataMarketplace
+ * @notice 基于 FHEVM 的加密数据市场
+ * @dev 数据提供者上传加密数据，购买者付费执行限定查询
+ */
+contract DataMarketplace is GatewayCaller, Ownable, ReentrancyGuard {
+    
+    // ========== 常量 ==========
+    
+    uint256 public constant CALLBACK_GAS_LIMIT = 500000;
+    uint256 public constant DECRYPTION_TIMEOUT = 30 minutes;
+    uint256 public constant MIN_PRICE = 0.001 ether;
+    uint256 public constant MAX_DATA_SIZE = 1000; // 每个数据集最多1000个数据点
+    
+    // ========== 枚举 ==========
+    
+    enum QueryType {
+        COMPUTE_MEAN,       // 计算均值
+        COMPUTE_VARIANCE,   // 计算方差
+        COUNT_ABOVE,        // 统计大于某值的数量
+        COUNT_BELOW         // 统计小于某值的数量
+    }
+    
+    enum QueryStatus {
+        PENDING,
+        PROCESSING,
+        COMPLETED,
+        FAILED,
+        REFUNDED
+    }
+    
+    // ========== 数据结构 ==========
+    
+    struct Dataset {
+        uint256 id;
+        address owner;
+        string name;
+        string description;
+        euint32[] encryptedValues;
+        uint256 pricePerQuery;
+        uint256 totalQueries;
+        uint256 totalRevenue;
+        bool active;
+        uint256 createdAt;
+    }
+    
+    struct Query {
+        uint256 id;
+        uint256 datasetId;
+        address buyer;
+        QueryType queryType;
+        uint256 parameter;
+        uint256 paidAmount;
+        QueryStatus status;
+        uint256 result;
+        uint256 requestId;
+        uint256 timestamp;
+    }
+    
+    // ========== 状态变量 ==========
+    
+    mapping(uint256 => Dataset) public datasets;
+    mapping(uint256 => Query) public queries;
+    mapping(uint256 => uint256) public requestIdToQueryId;
+    
+    uint256 public datasetCounter;
+    uint256 public queryCounter;
+    uint256 public platformFeePercent = 5; // 5% 平台手续费
+    
+    // ========== 事件 ==========
+    
+    event DatasetCreated(
+        uint256 indexed datasetId,
+        address indexed owner,
+        string name,
+        uint256 dataSize,
+        uint256 pricePerQuery
+    );
+    
+    event DatasetUpdated(
+        uint256 indexed datasetId,
+        uint256 newPrice
+    );
+    
+    event DatasetDeactivated(
+        uint256 indexed datasetId
+    );
+    
+    event QueryPurchased(
+        uint256 indexed queryId,
+        uint256 indexed datasetId,
+        address indexed buyer,
+        QueryType queryType,
+        uint256 paidAmount
+    );
+    
+    event QueryProcessing(
+        uint256 indexed queryId,
+        uint256 requestId
+    );
+    
+    event QueryCompleted(
+        uint256 indexed queryId,
+        uint256 result,
+        uint256 providerRevenue
+    );
+    
+    event QueryFailed(
+        uint256 indexed queryId,
+        string reason
+    );
+    
+    event QueryRefunded(
+        uint256 indexed queryId,
+        uint256 refundAmount
+    );
+    
+    event PlatformFeeUpdated(
+        uint256 oldFee,
+        uint256 newFee
+    );
+    
+    // ========== 修饰器 ==========
+    
+    modifier datasetExists(uint256 datasetId) {
+        require(datasetId < datasetCounter, "Dataset does not exist");
+        _;
+    }
+    
+    modifier datasetActive(uint256 datasetId) {
+        require(datasets[datasetId].active, "Dataset not active");
+        _;
+    }
+    
+    modifier onlyDatasetOwner(uint256 datasetId) {
+        require(datasets[datasetId].owner == msg.sender, "Not dataset owner");
+        _;
+    }
+    
+    // ========== 构造函数 ==========
+    
+    constructor() Ownable(msg.sender) {
+        // 初始化合约
+    }
+    
+    // ========== 数据集管理函数 ==========
+    
+    /**
+     * @notice 上传加密数据集
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param encryptedData 加密数据数组
+     * @param inputProofs 输入证明数组
+     * @param pricePerQuery 每次查询价格
+     */
+    function uploadDataset(
+        string memory name,
+        string memory description,
+        einput[] calldata encryptedData,
+        bytes[] calldata inputProofs,
+        uint256 pricePerQuery
+    ) external returns (uint256 datasetId) {
+        require(encryptedData.length > 0, "Empty dataset");
+        require(encryptedData.length <= MAX_DATA_SIZE, "Dataset too large");
+        require(encryptedData.length == inputProofs.length, "Length mismatch");
+        require(pricePerQuery >= MIN_PRICE, "Price too low");
+        require(bytes(name).length > 0, "Name required");
+        
+        datasetId = datasetCounter++;
+        
+        Dataset storage dataset = datasets[datasetId];
+        dataset.id = datasetId;
+        dataset.owner = msg.sender;
+        dataset.name = name;
+        dataset.description = description;
+        dataset.pricePerQuery = pricePerQuery;
+        dataset.active = true;
+        dataset.createdAt = block.timestamp;
+        
+        // 处理加密数据
+        for (uint256 i = 0; i < encryptedData.length; i++) {
+            euint32 value = TFHE.asEuint32(encryptedData[i], inputProofs[i]);
+            TFHE.allowThis(value);
+            TFHE.allow(value, msg.sender);
+            dataset.encryptedValues.push(value);
+        }
+        
+        emit DatasetCreated(
+            datasetId,
+            msg.sender,
+            name,
+            encryptedData.length,
+            pricePerQuery
+        );
+    }
+    
+    /**
+     * @notice 更新数据集价格
+     */
+    function updateDatasetPrice(uint256 datasetId, uint256 newPrice)
+        external
+        datasetExists(datasetId)
+        onlyDatasetOwner(datasetId)
+    {
+        require(newPrice >= MIN_PRICE, "Price too low");
+        datasets[datasetId].pricePerQuery = newPrice;
+        emit DatasetUpdated(datasetId, newPrice);
+    }
+    
+    /**
+     * @notice 停用数据集
+     */
+    function deactivateDataset(uint256 datasetId)
+        external
+        datasetExists(datasetId)
+        onlyDatasetOwner(datasetId)
+    {
+        datasets[datasetId].active = false;
+        emit DatasetDeactivated(datasetId);
+    }
+    
+    /**
+     * @notice 重新激活数据集
+     */
+    function reactivateDataset(uint256 datasetId)
+        external
+        datasetExists(datasetId)
+        onlyDatasetOwner(datasetId)
+    {
+        datasets[datasetId].active = true;
+    }
+    
+    // ========== 查询执行函数 ==========
+    
+    /**
+     * @notice 购买并执行查询
+     * @param datasetId 数据集ID
+     * @param queryType 查询类型
+     * @param parameter 查询参数（如阈值）
+     */
+    function purchaseAndExecuteQuery(
+        uint256 datasetId,
+        QueryType queryType,
+        uint256 parameter
+    )
+        external
+        payable
+        nonReentrant
+        datasetExists(datasetId)
+        datasetActive(datasetId)
+        returns (uint256 queryId)
+    {
+        Dataset storage dataset = datasets[datasetId];
+        require(msg.value >= dataset.pricePerQuery, "Insufficient payment");
+        
+        // 创建查询记录
+        queryId = queryCounter++;
+        Query storage query = queries[queryId];
+        query.id = queryId;
+        query.datasetId = datasetId;
+        query.buyer = msg.sender;
+        query.queryType = queryType;
+        query.parameter = parameter;
+        query.paidAmount = msg.value;
+        query.status = QueryStatus.PENDING;
+        query.timestamp = block.timestamp;
+        
+        emit QueryPurchased(
+            queryId,
+            datasetId,
+            msg.sender,
+            queryType,
+            msg.value
+        );
+        
+        // 执行查询
+        _executeQuery(queryId);
+    }
+    
+    /**
+     * @dev 内部函数：执行 FHE 计算
+     */
+    function _executeQuery(uint256 queryId) internal {
+        Query storage query = queries[queryId];
+        Dataset storage dataset = datasets[query.datasetId];
+        
+        query.status = QueryStatus.PROCESSING;
+        
+        // 根据查询类型执行计算
+        euint32 result;
+        
+        if (query.queryType == QueryType.COMPUTE_MEAN) {
+            result = _computeMean(dataset.encryptedValues);
+        } else if (query.queryType == QueryType.COMPUTE_VARIANCE) {
+            result = _computeVariance(dataset.encryptedValues);
+        } else if (query.queryType == QueryType.COUNT_ABOVE) {
+            result = _countAbove(dataset.encryptedValues, query.parameter);
+        } else if (query.queryType == QueryType.COUNT_BELOW) {
+            result = _countBelow(dataset.encryptedValues, query.parameter);
+        } else {
+            revert("Unsupported query type");
+        }
+        
+        // 请求解密
+        TFHE.allow(result, address(this));
+        
+        uint256[] memory cts = new uint256[](1);
+        cts[0] = Gateway.toUint256(result);
+        
+        uint256 requestId = Gateway.requestDecryption(
+            cts,
+            this.callbackQueryResult.selector,
+            0,
+            block.timestamp + DECRYPTION_TIMEOUT,
+            false
+        );
+        
+        query.requestId = requestId;
+        requestIdToQueryId[requestId] = queryId;
+        
+        emit QueryProcessing(queryId, requestId);
+    }
+    
+    // ========== FHE 计算函数 ==========
+    
+    /**
+     * @dev 计算加密数组的均值
+     */
+    function _computeMean(euint32[] storage values) internal view returns (euint32) {
+        require(values.length > 0, "Empty array");
+        
+        euint32 sum = values[0];
+        for (uint256 i = 1; i < values.length; i++) {
+            sum = TFHE.add(sum, values[i]);
+        }
+        
+        euint32 mean = TFHE.div(sum, uint32(values.length));
+        return mean;
+    }
+    
+    /**
+     * @dev 计算方差（简化版：使用两次遍历）
+     */
+    function _computeVariance(euint32[] storage values) internal view returns (euint32) {
+        require(values.length > 0, "Empty array");
+        
+        // 第一次遍历：计算均值
+        euint32 mean = _computeMean(values);
+        
+        // 第二次遍历：计算方差
+        euint32 sumSquaredDiff = TFHE.asEuint32(0);
+        for (uint256 i = 0; i < values.length; i++) {
+            euint32 diff = TFHE.sub(values[i], mean);
+            euint32 squaredDiff = TFHE.mul(diff, diff);
+            sumSquaredDiff = TFHE.add(sumSquaredDiff, squaredDiff);
+        }
+        
+        euint32 variance = TFHE.div(sumSquaredDiff, uint32(values.length));
+        return variance;
+    }
+    
+    /**
+     * @dev 统计大于某个值的数量
+     */
+    function _countAbove(euint32[] storage values, uint256 threshold)
+        internal
+        view
+        returns (euint32)
+    {
+        euint32 count = TFHE.asEuint32(0);
+        euint32 thresholdEnc = TFHE.asEuint32(uint32(threshold));
+        
+        for (uint256 i = 0; i < values.length; i++) {
+            ebool isAbove = TFHE.gt(values[i], thresholdEnc);
+            euint32 increment = TFHE.select(isAbove, TFHE.asEuint32(1), TFHE.asEuint32(0));
+            count = TFHE.add(count, increment);
+        }
+        
+        return count;
+    }
+    
+    /**
+     * @dev 统计小于某个值的数量
+     */
+    function _countBelow(euint32[] storage values, uint256 threshold)
+        internal
+        view
+        returns (euint32)
+    {
+        euint32 count = TFHE.asEuint32(0);
+        euint32 thresholdEnc = TFHE.asEuint32(uint32(threshold));
+        
+        for (uint256 i = 0; i < values.length; i++) {
+            ebool isBelow = TFHE.lt(values[i], thresholdEnc);
+            euint32 increment = TFHE.select(isBelow, TFHE.asEuint32(1), TFHE.asEuint32(0));
+            count = TFHE.add(count, increment);
+        }
+        
+        return count;
+    }
+    
+    // ========== Gateway 回调 ==========
+    
+    /**
+     * @notice Gateway 回调处理查询结果
+     */
+    function callbackQueryResult(uint256 requestId, uint32 decryptedResult)
+        public
+        onlyGateway
+    {
+        uint256 queryId = requestIdToQueryId[requestId];
+        Query storage query = queries[queryId];
+        Dataset storage dataset = datasets[query.datasetId];
+        
+        require(query.status == QueryStatus.PROCESSING, "Invalid query status");
+        
+        // 保存结果
+        query.result = decryptedResult;
+        query.status = QueryStatus.COMPLETED;
+        
+        // 自动结算
+        uint256 platformFee = (query.paidAmount * platformFeePercent) / 100;
+        uint256 providerRevenue = query.paidAmount - platformFee;
+        
+        // 转账给数据提供者
+        (bool success1, ) = payable(dataset.owner).call{value: providerRevenue}("");
+        require(success1, "Transfer to provider failed");
+        
+        // 平台手续费转给合约所有者
+        (bool success2, ) = payable(owner()).call{value: platformFee}("");
+        require(success2, "Transfer to platform failed");
+        
+        // 更新统计
+        dataset.totalQueries++;
+        dataset.totalRevenue += providerRevenue;
+        
+        emit QueryCompleted(queryId, decryptedResult, providerRevenue);
+    }
+    
+    // ========== 查询管理函数 ==========
+    
+    /**
+     * @notice 查询超时后申请退款
+     */
+    function refundFailedQuery(uint256 queryId) external nonReentrant {
+        Query storage query = queries[queryId];
+        
+        require(query.buyer == msg.sender, "Not query buyer");
+        require(query.status == QueryStatus.PROCESSING, "Not processing");
+        require(
+            block.timestamp > query.timestamp + DECRYPTION_TIMEOUT + 1 hours,
+            "Too early to refund"
+        );
+        
+        query.status = QueryStatus.REFUNDED;
+        
+        (bool success, ) = payable(msg.sender).call{value: query.paidAmount}("");
+        require(success, "Refund failed");
+        
+        emit QueryRefunded(queryId, query.paidAmount);
+    }
+    
+    // ========== 查询函数 ==========
+    
+    /**
+     * @notice 获取数据集基本信息
+     */
+    function getDatasetInfo(uint256 datasetId)
+        external
+        view
+        datasetExists(datasetId)
+        returns (
+            address owner,
+            string memory name,
+            string memory description,
+            uint256 dataSize,
+            uint256 pricePerQuery,
+            uint256 totalQueries,
+            uint256 totalRevenue,
+            bool active,
+            uint256 createdAt
+        )
+    {
+        Dataset storage dataset = datasets[datasetId];
+        return (
+            dataset.owner,
+            dataset.name,
+            dataset.description,
+            dataset.encryptedValues.length,
+            dataset.pricePerQuery,
+            dataset.totalQueries,
+            dataset.totalRevenue,
+            dataset.active,
+            dataset.createdAt
+        );
+    }
+    
+    /**
+     * @notice 获取查询结果
+     */
+    function getQueryResult(uint256 queryId)
+        external
+        view
+        returns (
+            QueryStatus status,
+            uint256 result,
+            uint256 timestamp
+        )
+    {
+        Query storage query = queries[queryId];
+        require(query.buyer == msg.sender, "Not query owner");
+        
+        return (query.status, query.result, query.timestamp);
+    }
+    
+    /**
+     * @notice 获取数据提供者的统计信息
+     */
+    function getProviderStats(address provider)
+        external
+        view
+        returns (
+            uint256 totalDatasets,
+            uint256 totalQueries,
+            uint256 totalRevenue
+        )
+    {
+        uint256 datasetCount = 0;
+        uint256 queryCount = 0;
+        uint256 revenue = 0;
+        
+        for (uint256 i = 0; i < datasetCounter; i++) {
+            if (datasets[i].owner == provider) {
+                datasetCount++;
+                queryCount += datasets[i].totalQueries;
+                revenue += datasets[i].totalRevenue;
+            }
+        }
+        
+        return (datasetCount, queryCount, revenue);
+    }
+    
+    /**
+     * @notice 获取所有活跃数据集的ID列表
+     */
+    function getActiveDatasets() external view returns (uint256[] memory) {
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < datasetCounter; i++) {
+            if (datasets[i].active) {
+                activeCount++;
+            }
+        }
+        
+        uint256[] memory activeIds = new uint256[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < datasetCounter; i++) {
+            if (datasets[i].active) {
+                activeIds[index] = i;
+                index++;
+            }
+        }
+        
+        return activeIds;
+    }
+    
+    // ========== 管理员函数 ==========
+    
+    /**
+     * @notice 更新平台手续费比例
+     */
+    function updatePlatformFee(uint256 newFeePercent) external onlyOwner {
+        require(newFeePercent <= 10, "Fee too high"); // 最多10%
+        uint256 oldFee = platformFeePercent;
+        platformFeePercent = newFeePercent;
+        emit PlatformFeeUpdated(oldFee, newFeePercent);
+    }
+    
+    /**
+     * @notice 紧急暂停功能（可扩展）
+     */
+    function emergencyWithdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Emergency withdraw failed");
+    }
+}
+
