@@ -614,7 +614,7 @@ function callbackQueryResult(
 |-----------|---------|---------|--------|
 | **Mock Contract** | Sepolia | `0x9e138064d8B68E027c8Fe0C4da03325C91cecaeb` | ✅ Active |
 | **FHE Contract** | Sepolia | `0x39adb32637D1E16C1Cd7159EE3a24C13c161FE69` | ✅ Deployed |
-| **Frontend** | Netlify | [Link](https://your-app.netlify.app) | 🚧 Coming Soon |
+| **Frontend** | Netlify | [Link](https://confidential-data-marketplace.netlify.app/) |  ✅ Active |
 
 ### Network Information | 网络信息
 
