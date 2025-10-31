@@ -9,7 +9,7 @@
 > 
 > 基于全同态加密（FHE）的隐私保护数据市场，支持在不暴露原始数据的情况下进行安全的数据交易和计算。
 
-[Demo](https://your-demo-link.com) | [Documentation](./docs) | [Developer Guide](./FHEVM_开发标准与解决方案手册.md)
+[Demo](https://confidential-data-marketplace.netlify.app/) | [Documentation](./docs) | [Developer Guide](./FHEVM_开发标准与解决方案手册.md)
 
 ---
 
