@@ -1,4 +1,4 @@
-# 🔐 Confidential Data Marketplace
+#  Confidential Data Marketplace
 <img width="2560" height="1279" alt="image" src="https://github.com/user-attachments/assets/719b36a8-5751-41dd-919b-94eee4caf065" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
