@@ -668,16 +668,16 @@ Both contracts are verified on Etherscan for transparency:
 
 | Milestone | Target Date | Status | Description EN | 描述 ZH |
 |-----------|-------------|--------|----------------|---------|
-| **MVP Launch** | ✅ Dec 2024 | **Completed** | Mock version with full functionality | MVP 上线（Mock 版本）|
-| **FHEVM Integration** | Jan 2025 | **70% Complete** | True FHE encryption operational | FHEVM 集成完成 |
-| **Zama Developer Program** | Feb 2025 | Pending | Competition submission | 参加 Zama 开发者计划 |
-| **Advanced Features** | Jun 2025 | Planned | Enhanced query types and UX | 高级功能上线 |
-| **Mainnet Deployment** | Sep 2025 | Planned | Production launch | 主网部署 |
-| **Mobile Apps** | Q1 2026 | Planned | iOS & Android release | 移动应用发布 |
+| **MVP Launch** | ✅ Oct 2025 | **Completed** | Mock version with full functionality | MVP 上线（Mock 版本）|
+| **FHEVM Integration** | Nov 2025 | **70% Complete** | True FHE encryption operational | FHEVM 集成完成 |
+| **Zama Developer Program** | Nov 2025 | **In Progress** | Competition submission | 参加 Zama 开发者计划 |
+| **Advanced Features** | Q1 2026 | Planned | Enhanced query types and UX | 高级功能上线 |
+| **Mainnet Deployment** | Q2 2026 | Planned | Production launch | 主网部署 |
+| **Mobile Apps** | Q3 2026 | Planned | iOS & Android release | 移动应用发布 |
 
 ---
 
-### Phase 1: Foundation ✅ (Q4 2024) - **COMPLETED** | 基础阶段 - **已完成**
+### Phase 1: Foundation ✅ (Q3 2025) - **COMPLETED** | 基础阶段 - **已完成**
 
 **Smart Contracts | 智能合约**
 - [x] Mock contract implementation (plaintext for testing) | Mock 合约实现
@@ -698,7 +698,7 @@ Both contracts are verified on Etherscan for transparency:
 
 ---
 
-### Phase 2: FHEVM Integration 🚧 (Q1 2025) - **70% COMPLETE** | FHEVM 集成 - **70% 完成**
+### Phase 2: FHEVM Integration 🚧 (Q4 2025) - **70% COMPLETE** | FHEVM 集成 - **70% 完成**
 
 **FHE-Enabled Contract | FHE 智能合约**
 - [x] `DataMarketplaceFHE` contract development | FHE 合约开发
@@ -715,11 +715,11 @@ Both contracts are verified on Etherscan for transparency:
 - [ ] Input encryption for uploads | 上传的输入加密
 - [ ] Result decryption handling | 结果解密处理
 
-**Target Completion: January 2025** | **目标完成：2025年1月**
+**Target Completion: November 2025** | **目标完成：2025年11月**
 
 ---
 
-### Phase 3: Enhancement 📋 (Q2 2025) - **PLANNED** | 增强阶段 - **计划中**
+### Phase 3: Enhancement 📋 (Q1 2026) - **PLANNED** | 增强阶段 - **计划中**
 
 **Advanced Features | 高级功能**
 - [ ] Advanced query types (regression, correlation) | 高级查询类型
@@ -733,11 +733,11 @@ Both contracts are verified on Etherscan for transparency:
 - [ ] Revenue trends and forecasting | 收入趋势和预测
 - [ ] Platform statistics | 平台统计
 
-**Target Completion: June 2025** | **目标完成：2025年6月**
+**Target Completion: Q1 2026** | **目标完成：2026年第一季度**
 
 ---
 
-### Phase 4: Production 🔮 (Q3-Q4 2025) - **FUTURE** | 生产阶段 - **未来**
+### Phase 4: Production 🔮 (Q2-Q3 2026) - **FUTURE** | 生产阶段 - **未来**
 
 **Network Expansion | 网络扩展**
 - [ ] Zama Devnet migration (when available) | 迁移到 Zama Devnet
@@ -755,7 +755,7 @@ Both contracts are verified on Etherscan for transparency:
 - [ ] Private data marketplaces | 私有数据市场
 - [ ] SLA guarantees | SLA 保证
 
-**Target Completion: December 2025** | **目标完成：2025年12月**
+**Target Completion: Q3 2026** | **目标完成：2026年第三季度**
 
 ---
 
@@ -777,13 +777,13 @@ Both contracts are verified on Etherscan for transparency:
 
 ### 📊 Success Metrics | 成功指标
 
-**By Q2 2025:**
+**By Q1 2026:**
 - 🎯 **Active Users**: 1,000+ | **活跃用户**：1,000+
 - 🎯 **Datasets**: 100+ | **数据集**：100+
 - 🎯 **Total Volume**: $10,000+ | **总交易量**：$10,000+
 - 🎯 **GitHub Stars**: 500+ | **GitHub 星标**：500+
 
-**By Q4 2025:**
+**By Q3 2026:**
 - 🎯 **Active Users**: 10,000+ | **活跃用户**：10,000+
 - 🎯 **Datasets**: 1,000+ | **数据集**：1,000+
 - 🎯 **Total Volume**: $100,000+ | **总交易量**：$100,000+
