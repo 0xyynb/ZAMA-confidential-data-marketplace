@@ -4,12 +4,13 @@
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org/)
 [![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
 [![Zama FHEVM](https://img.shields.io/badge/Zama-FHEVM-purple.svg)](https://www.zama.ai/)
+<img width="2560" height="1279" alt="image" src="https://github.com/user-attachments/assets/047d95a4-0527-4b57-b278-fc3a4850a876" />
 
 > A privacy-preserving data marketplace powered by Fully Homomorphic Encryption (FHE), enabling secure data trading and computation without exposing raw data.
 > 
 > 基于全同态加密（FHE）的隐私保护数据市场，支持在不暴露原始数据的情况下进行安全的数据交易和计算。
 
-[Demo](https://confidential-data-marketplace.netlify.app/) | [Documentation](./docs) | [Developer Guide](./FHEVM_开发标准与解决方案手册.md)
+[Demo](https://confidential-data-marketplace.netlify.app/) | [Documentation](./docs) | [Developer Guide]()
 
 ---
 
