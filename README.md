@@ -14,6 +14,22 @@
 
 ---
 
+```
+┌─────────────────────────────────────┐
+│ Dilemmas for Data Providers:       │
+│ ❌ Data is fully copied once sold  │
+│ ❌ Cannot control secondary use of data │
+│ ❌ Cannot prove data hasn't been leaked │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│ Dilemmas for Buyers:                │
+│ ❌ Cannot verify data quality before purchase │
+│ ❌ Worried about data contamination or falsification │
+│ ❌ Need to trust centralized platforms │
+└─────────────────────────────────────┘
+```
+
 ## 📖 Table of Contents | 目录
 
 - [Overview | 项目概述](#overview--项目概述)
