@@ -1,10 +1,10 @@
 # 🔐 Confidential Data Marketplace
+<img width="2560" height="1279" alt="image" src="https://github.com/user-attachments/assets/719b36a8-5751-41dd-919b-94eee4caf065" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org/)
 [![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
 [![Zama FHEVM](https://img.shields.io/badge/Zama-FHEVM-purple.svg)](https://www.zama.ai/)
-<img width="2560" height="1279" alt="image" src="https://github.com/user-attachments/assets/047d95a4-0527-4b57-b278-fc3a4850a876" />
 
 > A privacy-preserving data marketplace powered by Fully Homomorphic Encryption (FHE), enabling secure data trading and computation without exposing raw data.
 > 
